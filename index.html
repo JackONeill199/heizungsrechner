@@ -153,7 +153,7 @@ const DEFAULTS = {
   flaeche:195, bedarf:35000,
   strom:0.32, oel100:170, gas:0.135, pellet_t:439.99,
   oelBrenn:9.8, gasBrenn:11.3, pelletBrenn:4.8,
-  co2Oel:0.0084, co2Gas:0.0066,
+  co2Preis:55, co2Inkl:1,
   em_oel:280, em_gas:201, em_pellet:47, em_strom:350,
   haushalt:300, einbeziehen:1,
   verguetung:0.16, prod:400, bezug:50,
@@ -186,8 +186,8 @@ const FIELDS = {
   ['oelBrenn','Brennwert Heizöl','kWh/l',0.1],
   ['gasBrenn','Brennwert Erdgas','kWh/m³',0.1],
   ['pelletBrenn','Brennwert Pellets','kWh/kg',0.1],
-  ['co2Oel','CO₂-Abgabe Heizöl','€/kWh',0.0001],
-  ['co2Gas','CO₂-Abgabe Erdgas','€/kWh',0.0001],
+  ['co2Preis','CO₂-Preis (BEHG, netto)','€/t',5],
+  ['co2Inkl','Preise enthalten CO₂-Abgabe schon (1=ja, 0=nein)','',1],
   ['em_oel','Emission Heizöl','g/kWh',1],
   ['em_gas','Emission Erdgas','g/kWh',1],
   ['em_pellet','Emission Pellets','g/kWh',1],
@@ -222,8 +222,9 @@ const eur=(n,d=0)=>fmt(n,d)+' €';
 
 function calc(){
   const Q=S.bedarf, e=S.eff;
-  const pOel = S.oel100/100/S.oelBrenn + S.co2Oel;
-  const pGas = S.gas + S.co2Gas;
+  const abg=em=>S.co2Inkl?0:S.co2Preis*em/1e6*1.19;   // €/kWh inkl. 19 % MwSt
+  const pOel = S.oel100/100/S.oelBrenn + abg(S.em_oel);
+  const pGas = S.gas + abg(S.em_gas);
   const pPel = S.pellet_t/1000/S.pelletBrenn;
   const hh   = S.einbeziehen ? S.haushalt*S.strom : 0;       // €/Monat
   const mk=(name,kwh,pkwh,co2g,extra={})=>({name,kwh,pkwh,heiz:kwh*pkwh/12,base:hh,co2:kwh*co2g/1000,...extra});
@@ -299,7 +300,7 @@ function update(){
     const v=parseFloat(e.target.value); if(v>0){S.eff[e.target.dataset.k]=v;} update(); }));
 
   document.getElementById('notes').innerHTML=
-   `Ölpreis inkl. CO₂-Abgabe: ${fmt(R.pOel,4)} €/kWh · Gaspreis inkl. CO₂-Abgabe: ${fmt(R.pGas,4)} €/kWh · Pellets: ${fmt(R.pPel,4)} €/kWh.<br>
+   `Ölpreis${S.co2Inkl?'':' inkl. CO₂-Abgabe'}: ${fmt(R.pOel,4)} €/kWh · Gaspreis${S.co2Inkl?'':' inkl. CO₂-Abgabe'}: ${fmt(R.pGas,4)} €/kWh · Pellets: ${fmt(R.pPel,4)} €/kWh.<br>
     Heiz-Energie = Bedarf ÷ Wirkungsgrad. „Strom“ = Haushaltsstrom, bei der Brennstoffzelle mit Strom: Netzbezug abzgl. Einspeisevergütung (kann negativ sein). CO₂ der Brennstoffzelle mit Strom ohne Stromgutschrift.`;
 
 
