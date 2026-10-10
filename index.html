@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heizungsrechner</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --ink:#1b2430; --muted:#6b7686; --line:#e3e8ef;
+  --accent:#e8590c; --accent2:#2b8a3e; --bar:#dfe6f0; --best:#2b8a3e; --worst:#c92a2a; --input:#f8fafc;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 4px 14px rgba(20,30,50,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151c; --card:#18202b; --ink:#e8edf3; --muted:#8c99aa; --line:#27323f;
+    --accent:#ff8a3d; --accent2:#51cf66; --bar:#263243; --best:#51cf66; --worst:#ff6b6b; --input:#121922;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151c; --card:#18202b; --ink:#e8edf3; --muted:#8c99aa; --line:#27323f;
+  --accent:#ff8a3d; --accent2:#51cf66; --bar:#263243; --best:#51cf66; --worst:#ff6b6b; --input:#121922; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 16px 60px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{font-size:26px;margin:0;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:13px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:13px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 12px;font-weight:600}
+.card + .card{margin-top:16px}
+.field{display:grid;grid-template-columns:1fr 112px;gap:8px;align-items:center;margin:7px 0}
+.field label{font-size:13.5px}
+.field .u{color:var(--muted);font-size:12px}
+.field div.in{position:relative}
+input[type=number]{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:7px;padding:6px 8px;text-align:right}
+input[type=number]:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-size:24px;font-weight:650;margin-top:2px;letter-spacing:-.01em}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.kpi.best .v{color:var(--best)}
+.row{display:grid;grid-template-columns:190px 1fr 96px;gap:10px;align-items:center;padding:6px 0}
+@media(max-width:560px){.row{grid-template-columns:110px 1fr 74px;font-size:13px}}
+.row .n{font-size:14px}
+.track{height:20px;background:var(--bar);border-radius:6px;overflow:hidden}
+.fill{height:100%;border-radius:6px;background:var(--accent);transition:width .35s}
+.row.best .fill{background:var(--best)}
+.row .val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td input{width:70px;padding:3px 6px;font-size:13px}
+.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.ok{background:rgba(43,138,62,.15);color:var(--best)} .no{background:rgba(201,42,42,.14);color:var(--worst)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.mini div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.mini div:last-child{border:0}
+.mini b{font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+svg.lines{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.legend .off{opacity:.35}
+select{font:inherit;font-size:13px;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px;font-size:13.5px}
+.toolbar input{width:80px}
+td input.w{width:84px}
+footer{margin-top:30px;color:var(--muted);font-size:12px;text-align:center}
+footer a{color:var(--accent)}
+@media print{
+  body{background:#fff;color:#000} aside,.btns,.tabs{display:none!important}
+  .grid{grid-template-columns:1fr} .card,.kpi{box-shadow:none;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Heizungs<span>rechner</span></h1>
+    <div class="sub">Vergleich von Heizsystemen · Eingaben werden automatisch in diesem Browser gespeichert</div>
+  </div>
+  <div class="btns">
+    <button id="share">Link teilen</button>
+    <button id="print">Drucken / PDF</button>
+    <button id="exp">Daten exportieren</button>
+    <button id="imp">Daten importieren</button>
+    <button id="reset">Zurücksetzen</button>
+    <button id="theme">Hell/Dunkel</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+</header>
+
+<div class="grid">
+  <aside>
+    <div class="card"><h2>Gebäude &amp; Verbrauch</h2><div id="f-obj"></div></div>
+    <div class="card"><h2>Energiepreise</h2><div id="f-price"></div></div>
+    <div class="card"><h2>Brennwerte &amp; CO₂</h2><div id="f-calor"></div></div>
+    <div class="card"><h2>Strom &amp; Brennstoffzelle</h2><div id="f-strom"></div></div>
+  </aside>
+
+  <main>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card">
+      <div class="tabs" id="tabs"></div>
+      <div id="chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>Systeme im Detail <span style="text-transform:none;letter-spacing:0">(Wirkungsgrad / JAZ direkt editierbar)</span></h2>
+      <div class="scroll"><table id="tbl"></table></div>
+      <div class="note" id="notes"></div>
+    </div>
+
+    <div class="card">
+      <h2>Investition &amp; Gesamtkosten über die Jahre</h2>
+      <div class="toolbar">
+        <label>Zeitraum <input type="number" id="i-jahre" min="1" max="40" step="1"> Jahre</label>
+        <label>Energiepreissteigerung <input type="number" id="i-steig" step="0.5"> % / Jahr</label>
+        <label>Referenz für Amortisation <select id="ref"></select></label>
+      </div>
+      <div id="lines"></div><div class="legend" id="legend"></div>
+      <div class="scroll"><table id="tbl2" style="margin-top:14px"></table></div>
+      <div class="note">Investitionskosten und Förderung sind <b>Beispielwerte</b> – bitte mit eigenen Angeboten überschreiben. Gesamtkosten = Investition nach Förderung + Energiekosten (inkl. Haushaltsstrom) mit jährlicher Preissteigerung. Kein Wartungs- oder Zinsansatz.</div>
+    </div>
+
+    <div class="card two">
+      <div><h2>Brennstoffzelle (Vitovalor) vs. Gastherme</h2><div class="mini" id="bsz"></div></div>
+      <div><h2>Verbrauchsmengen pro Jahr</h2><div class="mini" id="qty"></div></div>
+    </div>
+  </main>
+</div>
+<footer>Alle Berechnungen laufen lokal im Browser – keine Daten werden gesendet. Ergebnisse sind Näherungen ohne Gewähr.</footer>
+</div>
+
+<script>
+const DEFAULTS = {
+  flaeche:195, bedarf:35000,
+  strom:0.32, oel100:93.51, gas:0.09, pellet_t:330,
+  oelBrenn:9.8, gasBrenn:11.3, pelletBrenn:4.8,
+  co2Oel:0.0084, co2Gas:0.0066,
+  em_oel:280, em_gas:201, em_pellet:47, em_strom:350,
+  haushalt:300, einbeziehen:1,
+  verguetung:0.16, prod:400, bezug:50,
+  bszVerbr:2.25, bszTherme:1.13, thermeStrom:0.75,
+  wpAnteil:60, jahre:20, steig:3, ref:'Gasbrennwert',
+  inv:{'Ölbrennwert':12000,'Niedertemp.-Ölheizung':8000,'Gasbrennwert':10000,'Wärmepumpe':25000,'Brennstoffzelle ohne Strom':25000,'Brennstoffzelle mit Strom':25000,'Pellets':22000,'Wärmepumpe + Pellets':30000,'Direktstrom':5000},
+  foerd:{'Ölbrennwert':0,'Niedertemp.-Ölheizung':0,'Gasbrennwert':0,'Wärmepumpe':30,'Brennstoffzelle ohne Strom':0,'Brennstoffzelle mit Strom':0,'Pellets':30,'Wärmepumpe + Pellets':30,'Direktstrom':0},
+  eff:{oelbw:0.98, oelnt:0.75, gasbw:0.98, wp:3.4, bszo:0.98, bszm:0.90, pellet:0.98}
+};
+let S = load();
+function load(){
+  try{ const j = JSON.parse(localStorage.getItem('heizrechner')||'null'); if(j) return merge(structuredClone(DEFAULTS), j);}catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function merge(a,b){ for(const k in b){ if(typeof b[k]==='object' && b[k]) a[k]=merge(a[k]||{},b[k]); else a[k]=b[k]; } return a; }
+function save(){ try{localStorage.setItem('heizrechner',JSON.stringify(S));}catch(e){} }
+
+const FIELDS = {
+ 'f-obj':[
+  ['flaeche','Beheizte Fläche','m²',1],
+  ['bedarf','Heizenergiebedarf pro Jahr','kWh',100],
+ ],
+ 'f-price':[
+  ['strom','Strompreis','€/kWh',0.01],
+  ['gas','Gaspreis','€/kWh',0.005],
+  ['oel100','Heizölpreis','€/100 l',0.5],
+  ['pellet_t','Pelletpreis','€/t',5],
+ ],
+ 'f-calor':[
+  ['oelBrenn','Brennwert Heizöl','kWh/l',0.1],
+  ['gasBrenn','Brennwert Erdgas','kWh/m³',0.1],
+  ['pelletBrenn','Brennwert Pellets','kWh/kg',0.1],
+  ['co2Oel','CO₂-Abgabe Heizöl','€/kWh',0.0001],
+  ['co2Gas','CO₂-Abgabe Erdgas','€/kWh',0.0001],
+  ['em_oel','Emission Heizöl','g/kWh',1],
+  ['em_gas','Emission Erdgas','g/kWh',1],
+  ['em_pellet','Emission Pellets','g/kWh',1],
+  ['em_strom','Emission Strommix','g/kWh',1],
+  ['wpAnteil','Pellethybrid: Anteil Wärmepumpe','%',5],
+ ],
+ 'f-strom':[
+  ['haushalt','Haushaltsstrom pro Monat','kWh',10],
+  ['einbeziehen','Haushaltsstrom in Vergleich (1=ja, 0=nein)','',1],
+  ['verguetung','Einspeisevergütung','€/kWh',0.01],
+  ['prod','Max. Stromproduktion BSZ pro Monat','kWh',10],
+  ['bezug','Netzbezug mit BSZ','% vom Haushaltsstrom',5],
+  ['bszVerbr','BSZ: Gasverbrauch je kWh Strom','kWh',0.01],
+  ['bszTherme','Therme: Gasverbrauch je kWh Wärme','kWh',0.01],
+  ['thermeStrom','Therme: Stromeinsatz je kWh Strom-Äquivalent','',0.01],
+ ]
+};
+function buildFields(){
+  for(const id in FIELDS){
+    const box=document.getElementById(id); box.innerHTML='';
+    FIELDS[id].forEach(([k,label,unit,step])=>{
+      const d=document.createElement('div'); d.className='field';
+      d.innerHTML=`<label for="i-${k}">${label}${unit?` <span class="u">(${unit})</span>`:''}</label><div class="in"><input type="number" id="i-${k}" step="${step}" value="${S[k]}"></div>`;
+      box.appendChild(d);
+      d.querySelector('input').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){S[k]=v; update();} });
+    });
+  }
+}
+
+const fmt=(n,d=0)=>n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const eur=(n,d=0)=>fmt(n,d)+' €';
+
+function calc(){
+  const Q=S.bedarf, e=S.eff;
+  const pOel = S.oel100/100/S.oelBrenn + S.co2Oel;
+  const pGas = S.gas + S.co2Gas;
+  const pPel = S.pellet_t/1000/S.pelletBrenn;
+  const hh   = S.einbeziehen ? S.haushalt*S.strom : 0;       // €/Monat
+  const mk=(name,kwh,pkwh,co2g,extra={})=>({name,kwh,pkwh,heiz:kwh*pkwh/12,base:hh,co2:kwh*co2g/1000,...extra});
+
+  const sys=[];
+  sys.push(mk('Ölbrennwert',Q/e.oelbw,pOel,S.em_oel,{k:'oelbw',eff:e.oelbw,lbl:'Wirkungsgrad'}));
+  sys.push(mk('Niedertemp.-Ölheizung',Q/e.oelnt,pOel,S.em_oel,{k:'oelnt',eff:e.oelnt,lbl:'Wirkungsgrad'}));
+  sys.push(mk('Gasbrennwert',Q/e.gasbw,pGas,S.em_gas,{k:'gasbw',eff:e.gasbw,lbl:'Wirkungsgrad'}));
+  const wpKwh=Q/e.wp;
+  sys.push(mk('Wärmepumpe',wpKwh,S.strom,S.em_strom,{k:'wp',eff:e.wp,lbl:'JAZ'}));
+  sys.push(mk('Brennstoffzelle ohne Strom',Q/e.bszo,pGas,S.em_gas,{k:'bszo',eff:e.bszo,lbl:'Wirkungsgrad'}));
+
+  // Brennstoffzelle mit Stromerzeugung
+  const bezugKwh=S.bezug/100*S.haushalt, einsp=Math.max(S.prod-bezugKwh,0);
+  const bszStrom = bezugKwh*S.strom - einsp*S.verguetung;     // €/Monat
+  const bsz=mk('Brennstoffzelle mit Strom',Q/e.bszm,pGas,S.em_gas,{k:'bszm',eff:e.bszm,lbl:'Wirkungsgrad',co2n:true});
+  bsz.base=bszStrom; sys.push(bsz);
+
+  sys.push(mk('Pellets',Q/e.pellet,pPel,S.em_pellet,{k:'pellet',eff:e.pellet,lbl:'Wirkungsgrad'}));
+
+  const a=S.wpAnteil/100, pelKwh=Q/e.pellet;
+  const hy=mk('Wärmepumpe + Pellets',a*wpKwh+(1-a)*pelKwh,0,0,{k:null,eff:null,lbl:''});
+  hy.heiz=(a*wpKwh*S.strom+(1-a)*pelKwh*pPel)/12;
+  hy.pkwh=hy.heiz*12/hy.kwh;
+  hy.co2=(a*wpKwh*S.em_strom+(1-a)*pelKwh*S.em_pellet)/1000;
+  sys.push(hy);
+
+  sys.push(mk('Direktstrom',Q,S.strom,S.em_strom,{k:null,eff:1,lbl:''}));
+
+  sys.forEach(s=>{ s.monat=s.heiz+s.base; s.jahr=s.monat*12; });
+  return {sys,pOel,pGas,pPel,bezugKwh,einsp,bszStrom,hh};
+}
+
+let metric='monat';
+const METRICS={
+  monat:{l:'Kosten pro Monat',f:s=>s.monat,fmt:v=>eur(v)},
+  jahr:{l:'Kosten pro Jahr',f:s=>s.jahr,fmt:v=>eur(v)},
+  co2:{l:'CO₂ pro Jahr',f:s=>s.co2,fmt:v=>fmt(v/1000,1)+' t'},
+  kwh:{l:'Energieeinsatz',f:s=>s.kwh,fmt:v=>fmt(v)+' kWh'},
+};
+document.getElementById('tabs').innerHTML=Object.entries(METRICS).map(([k,m])=>`<button data-m="${k}">${m.l}</button>`).join('');
+document.getElementById('tabs').onclick=e=>{ if(e.target.dataset.m){metric=e.target.dataset.m;update();} };
+
+function update(){
+  save();
+  const R=calc(), sys=R.sys;
+  const byCost=[...sys].sort((a,b)=>a.monat-b.monat);
+  const best=byCost[0], worst=byCost[byCost.length-1];
+  const lowCo2=[...sys].sort((a,b)=>a.co2-b.co2)[0];
+  const nom=sys.find(s=>s.name==='Ölbrennwert');
+
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi best"><div class="l">Günstigstes System</div><div class="v">${best.name}</div><div class="s">${eur(best.monat)} / Monat · ${eur(best.jahr)} / Jahr</div></div>
+    <div class="kpi"><div class="l">Ersparnis ggü. Teuerstem</div><div class="v">${eur((worst.jahr-best.jahr))}</div><div class="s">pro Jahr (${worst.name})</div></div>
+    <div class="kpi"><div class="l">Wenigste CO₂-Emission</div><div class="v">${lowCo2.name}</div><div class="s">${fmt(lowCo2.co2/1000,1)} t pro Jahr</div></div>
+    <div class="kpi"><div class="l">Bedarf pro m²</div><div class="v">${fmt(S.bedarf/S.flaeche,0)} kWh</div><div class="s">${fmt(S.bedarf)} kWh auf ${fmt(S.flaeche)} m²</div></div>`;
+
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===metric));
+  const M=METRICS[metric];
+  const sorted=[...sys].sort((a,b)=>M.f(a)-M.f(b)); const max=Math.max(...sorted.map(M.f));
+  document.getElementById('chart').innerHTML=sorted.map((s,i)=>`
+    <div class="row ${i===0?'best':''}"><div class="n">${s.name}</div>
+    <div class="track"><div class="fill" style="width:${Math.max(M.f(s)/max*100,1)}%"></div></div>
+    <div class="val">${M.fmt(M.f(s))}</div></div>`).join('');
+
+  const t=document.getElementById('tbl');
+  t.innerHTML=`<tr><th>System</th><th>Wirkungsgrad / JAZ</th><th>Energie kWh/a</th><th>€/kWh</th><th>Heizung €/Monat</th><th>Strom €/Monat</th><th>Gesamt €/Monat</th><th>Gesamt €/Jahr</th><th>CO₂ kg/a</th></tr>`+
+   sys.map(s=>`<tr><td>${s.name}</td>
+    <td>${s.k?`<input type="number" step="${s.k==='wp'?0.1:0.01}" data-k="${s.k}" value="${s.eff}">`:'–'}</td>
+    <td>${fmt(s.kwh)}</td><td>${fmt(s.pkwh,4)}</td><td>${fmt(s.heiz,2)}</td><td>${fmt(s.base,2)}</td>
+    <td><b>${fmt(s.monat,2)}</b></td><td>${fmt(s.jahr)}</td><td>${fmt(s.co2)}</td></tr>`).join('');
+  t.querySelectorAll('input').forEach(i=>i.addEventListener('change',e=>{
+    const v=parseFloat(e.target.value); if(v>0){S.eff[e.target.dataset.k]=v;} update(); }));
+
+  document.getElementById('notes').innerHTML=
+   `Ölpreis inkl. CO₂-Abgabe: ${fmt(R.pOel,4)} €/kWh · Gaspreis inkl. CO₂-Abgabe: ${fmt(R.pGas,4)} €/kWh · Pellets: ${fmt(R.pPel,4)} €/kWh.<br>
+    Heiz-Energie = Bedarf ÷ Wirkungsgrad. „Strom“ = Haushaltsstrom, bei der Brennstoffzelle mit Strom: Netzbezug abzgl. Einspeisevergütung (kann negativ sein). CO₂ der Brennstoffzelle mit Strom ohne Stromgutschrift.`;
+
+
+  // Investition & Zeitverlauf
+  const N=Math.max(1,Math.round(S.jahre)), gr=S.steig/100;
+  sys.forEach(x=>{
+    x.invNet=(S.inv[x.name]||0)*(1-(S.foerd[x.name]||0)/100);
+    x.cum=[x.invNet]; for(let t=1;t<=N;t++) x.cum.push(x.cum[t-1]+x.jahr*Math.pow(1+gr,t-1));
+    x.total=x.cum[N];
+  });
+  const refSys=sys.find(x=>x.name===S.ref)||sys[0];
+  const be=x=>{ if(x===refSys) return '–'; for(let t=0;t<=N;t++) if(x.cum[t]<=refSys.cum[t]) return t===0?'sofort':t+' J.'; return 'nicht im Zeitraum'; };
+  const sel=document.getElementById('ref');
+  if(!sel.options.length){ sys.forEach(x=>sel.add(new Option(x.name,x.name))); sel.onchange=e=>{S.ref=e.target.value;update();}; }
+  sel.value=refSys.name;
+  const ij=document.getElementById('i-jahre'), is=document.getElementById('i-steig');
+  if(document.activeElement!==ij) ij.value=N;
+  if(document.activeElement!==is) is.value=S.steig;
+  const t2=document.getElementById('tbl2');
+  t2.innerHTML=`<tr><th>System</th><th>Investition €</th><th>Förderung %</th><th>Nach Förderung</th><th>Gesamtkosten ${N} J.</th><th>Ø €/Monat</th><th>Amortisation ggü. ${refSys.name}</th></tr>`+
+   [...sys].sort((a,b)=>a.total-b.total).map((x,i)=>`<tr><td>${x.name}${i===0?' <span class="pill ok">günstigste</span>':''}</td>
+    <td><input class="w" type="number" step="500" data-inv="${x.name}" value="${S.inv[x.name]||0}"></td>
+    <td><input type="number" step="5" min="0" max="100" data-f="${x.name}" value="${S.foerd[x.name]||0}"></td>
+    <td>${fmt(x.invNet)} €</td><td><b>${fmt(x.total)} €</b></td><td>${fmt(x.total/N/12)} €</td><td>${be(x)}</td></tr>`).join('');
+  t2.querySelectorAll('input').forEach(i=>i.addEventListener('change',e=>{
+    const v=parseFloat(e.target.value)||0; const d=e.target.dataset;
+    if(d.inv) S.inv[d.inv]=v; else S.foerd[d.f]=v; update(); }));
+  drawLines(sys,N);
+
+  // BSZ
+  const eBsz=S.bszVerbr*S.gas, eTh=S.bszTherme*S.gas+S.thermeStrom*S.strom, sp=eTh-eBsz;
+  document.getElementById('bsz').innerHTML=`
+    <div><span>Kosten je kWh Strom aus BSZ</span><b>${fmt(eBsz,4)} €</b></div>
+    <div><span>Kosten je kWh Wärme/Strom Therme</span><b>${fmt(eTh,4)} €</b></div>
+    <div><span>Ersparnis je kWh</span><b>${fmt(sp,4)} €</b></div>
+    <div><span>Lohnt sich der Betrieb?</span><b><span class="pill ${eBsz<eTh?'ok':'no'}">${eBsz<eTh?'Ja':'Nein'}</span></b></div>
+    <div><span>Netzbezug mit BSZ</span><b>${fmt(R.bezugKwh)} kWh/Monat</b></div>
+    <div><span>Einspeisung</span><b>${fmt(R.einsp)} kWh/Monat</b></div>
+    <div><span>Stromkosten mit BSZ</span><b>${fmt(R.bszStrom,2)} €/Monat</b></div>`;
+
+  // Mengen
+  const g=n=>sys.find(s=>s.name===n);
+  document.getElementById('qty').innerHTML=`
+    <div><span>Heizöl</span><b>${fmt(g('Ölbrennwert').kwh/S.oelBrenn)} l · ${eur(g('Ölbrennwert').heiz*12)}</b></div>
+    <div><span>Erdgas</span><b>${fmt(g('Gasbrennwert').kwh/S.gasBrenn)} m³ · ${eur(g('Gasbrennwert').heiz*12)}</b></div>
+    <div><span>Pellets</span><b>${fmt(g('Pellets').kwh/S.pelletBrenn)} kg · ${eur(g('Pellets').heiz*12)}</b></div>
+    <div><span>Wärmepumpe Strom</span><b>${fmt(g('Wärmepumpe').kwh)} kWh · ${eur(g('Wärmepumpe').heiz*12)}</b></div>
+    <div><span>Preis Heizöl / Liter</span><b>${fmt(S.oel100/100,4)} €</b></div>
+    <div><span>Preis Gas / m³</span><b>${fmt(R.pGas*S.gasBrenn,3)} €</b></div>`;
+}
+
+
+const hidden=new Set();
+const hue=i=>`hsl(${(i*40+15)%360} 70% 50%)`;
+function drawLines(sys,N){
+  const W=720,H=300,L=62,B=28,T=10,R=10;
+  const vis=sys.filter(x=>!hidden.has(x.name));
+  const max=Math.max(1,...vis.map(x=>Math.max(...x.cum)));
+  const X=t=>L+t/N*(W-L-R), Y=v=>H-B-v/max*(H-B-T);
+  let o=`<svg class="lines" viewBox="0 0 ${W} ${H}">`;
+  for(let i=0;i<=4;i++){const v=max*i/4,y=Y(v);o+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--muted)">${fmt(v/1000)}k €</text>`;}
+  const step=Math.max(1,Math.ceil(N/10));
+  for(let t=0;t<=N;t+=step)o+=`<text x="${X(t)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${t}</text>`;
+  sys.forEach((x,i)=>{ if(hidden.has(x.name))return;
+    o+=`<polyline fill="none" stroke="${hue(i)}" stroke-width="2.2" points="${x.cum.map((v,t)=>X(t)+','+Y(v)).join(' ')}"/>`; });
+  document.getElementById('lines').innerHTML=o+'</svg>';
+  const lg=document.getElementById('legend');
+  lg.innerHTML=sys.map((x,i)=>`<span class="${hidden.has(x.name)?'off':''}" data-n="${x.name}"><i style="background:${hue(i)}"></i>${x.name}</span>`).join('');
+  lg.onclick=e=>{const n=e.target.closest('span')?.dataset.n; if(!n)return; hidden.has(n)?hidden.delete(n):hidden.add(n); update();};
+}
+function bindExtra(){
+  document.getElementById('i-jahre').oninput=e=>{const v=parseFloat(e.target.value); if(v>=1&&v<=40){S.jahre=v;update();}};
+  document.getElementById('i-steig').oninput=e=>{const v=parseFloat(e.target.value); if(!isNaN(v)){S.steig=v;update();}};
+}
+document.getElementById('share').onclick=()=>{
+  const url=location.href.split('#')[0]+'#'+btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+  (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>alert('Link mit allen Eingaben in die Zwischenablage kopiert.'),()=>prompt('Link kopieren:',url));
+};
+document.getElementById('print').onclick=()=>window.print();
+
+// Buttons
+document.getElementById('reset').onclick=()=>{ if(confirm('Alle Werte auf Standard zurücksetzen?')){S=structuredClone(DEFAULTS);buildFields();update();} };
+document.getElementById('exp').onclick=()=>{
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  a.download='heizungsrechner-daten.json'; a.click();
+};
+document.getElementById('imp').onclick=()=>document.getElementById('file').click();
+document.getElementById('file').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  f.text().then(t=>{ try{S=merge(structuredClone(DEFAULTS),JSON.parse(t));buildFields();update();}catch(_){alert('Datei konnte nicht gelesen werden.');} });
+};
+document.getElementById('theme').onclick=()=>{
+  const r=document.documentElement; const dark=getComputedStyle(r).getPropertyValue('--bg').trim()==='#10151c';
+  r.dataset.theme=dark?'light':'dark';
+};
+
+if(location.hash.length>1){ try{ S=merge(structuredClone(DEFAULTS),JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1))))));}catch(_){} }
+buildFields(); bindExtra(); update();
+</script>
+</body>
+</html>
